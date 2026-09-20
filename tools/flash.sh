@@ -38,16 +38,10 @@ docker run --rm $TTY_FLAGS \
         0x0 build/bootloader/bootloader.bin \
         0x8000 build/partition_table/partition-table.bin \
         0xe000 build/ota_data_initial.bin \
-        0x10000 build/vanguard_firmware.bin
+        0x10000 build/vanguard_firmware.bin \
+        0x610000 build/ffat.bin
 
-echo "== Erasing NVS partition on $PORT (identity/contacts/challenge progress) =="
-docker run --rm $TTY_FLAGS \
-    -v "$(pwd)":/project \
-    -w /project \
-    --device="$PORT" \
-    "$IDF_IMAGE" \
-    python -m esptool --chip esp32s3 --port "$PORT" \
-        --before no_reset --after no_reset erase_region 0x9000 0x5000
+# NVS erase step removed so you don't lose your CTF progress, contacts, and settings!
 
 echo "== Resetting $PORT into the new firmware =="
 docker run --rm \

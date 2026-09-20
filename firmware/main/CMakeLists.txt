@@ -1,9 +1,9 @@
 # NOTE: GLOB is evaluated at CMake *configure* time, and ESP-IDF runs this
 # file in script mode where CONFIGURE_DEPENDS is rejected -- so newly added
 # .cpp files are NOT picked up automatically. After adding a source file,
-# either touch this CMakeLists.txt or run a clean build, otherwise the file
-# compiles into nothing and you get a confusing link-time "undefined
+# either touch this CMakeLists.txt or run a clean build, otherwise the# files compiles into nothing and you get a confusing link-time "undefined
 # reference" rather than a missing-file error.
+# Touched for Image Viewer addition.
 file(GLOB_RECURSE VANGUARD_SOURCES "*.cpp")
 
 # Boot animation frames (see tools/gen_boot_anim.py) -- embedded as raw
@@ -18,12 +18,12 @@ idf_component_register(
     SRCS ${VANGUARD_SOURCES}
     INCLUDE_DIRS "." "rf" "display" "storage" "power" "input" "leds" "audio"
                  "ui" "perf" "settings" "contacts" "music" "boot" "games"
-                 "challenges" "peerdrop" "satellite" "radiochat" "glitch" "vanguard_buddy" "../include"
+                 "challenges" "satellite" "radiochat" "glitch" "girlfriend" "../include"
     EMBED_FILES ${BOOT_ANIM_FRAME_FILES}
     REQUIRES espressif__arduino-esp32 jgromes__radiolib driver esp_timer
              Adafruit_GFX_Library Adafruit_ST7735_and_ST7789_Library
              nvs_flash h2zero__esp-nimble-cpp mbedtls espressif__qrcode
-             espressif__esp_jpeg
+             espressif__esp_jpeg wear_levelling fatfs
     # Without this, static-archive linking only pulls in object files that
     # resolve a symbol the linker is *already* looking for at scan time --
     # with 80 EMBED_FILES-generated frame objects sharing this one archive
@@ -35,6 +35,7 @@ idf_component_register(
     WHOLE_ARCHIVE
 )
 
+fatfs_create_spiflash_image(ffat ../assets/fat FLASH_IN_PROJECT)
 # Optional satellite-simulator build of this same firmware:
 #     idf.py -DVANGUARD_SATELLITE_SIM=1 build
 # Produces an image that acts as the Vanguard satellite (Mission 02

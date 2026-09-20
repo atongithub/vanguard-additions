@@ -17,12 +17,13 @@
 #include "boot/boot.h"
 #include "ui/menu.h"
 #include "ui/screensaver.h"
+#include "ui/8ball.h"
+#include "games/pokemon.h"
 #include "games/tetris.h"
 #include "games/snake.h"
 #include "games/space_shooter.h"
 #include "games/game2048.h"
-#include "games/ship_battle.h"
-#include "peerdrop/peerdrop.h"
+#include "games/doom_screen.h"
 #include "settings/settings.h"
 #include "music/music.h"
 #include "contacts/contacts.h"
@@ -35,22 +36,19 @@
 #include "settings/badge_id.h"
 #include "radiochat/radio_chat.h"
 #include "glitch/glitch.h"
-#include "vanguard_buddy/vanguard_buddy.h"
+#include "ui/pop_cig.h"
+#include "girlfriend/girlfriend.h"
 
 static AppState s_state = AppState::Boot;
 
 static void enterState(AppState s) {
-    // Belt-and-suspenders: PeerDrop's BLE session takes priority over any in-flight LoRa
-    // receive window, so LoRa polling and an active BLE connection attempt never overlap.
-    if (s == AppState::Peerdrop) {
-        rf::stopReceiving();
-    }
+    // Belt-and-suspenders: (removed Peerdrop here)
 
-    // radiolink (Radio Chat/Ship Battle) owns the radio while active and must hand it
+    // radiolink (Radio Chat) owns the radio while active and must hand it
     // back on every transition that isn't INTO those states, not just an explicit Back
     // press — the DISP shortcut and MissionComplete takeover jump straight to
     // enterState() without running the current screen's own frame() cleanup.
-    if (s != AppState::RadioChat && s != AppState::ShipBattle) {
+    if (s != AppState::RadioChat) {
         radiolink::end();
     }
 
@@ -59,7 +57,7 @@ static void enterState(AppState s) {
     // LED design would otherwise show the red/green progress pattern as unrelated feedback.
     bool suppressBaseline = (s == AppState::Tetris || s == AppState::Snake ||
                              s == AppState::SpaceShooter || s == AppState::Game2048 ||
-                             s == AppState::ShipBattle || s == AppState::RadioChat);
+                             s == AppState::Doom || s == AppState::RadioChat);
     led::setBaselineSuppressed(suppressBaseline);
 
     switch (s) {
@@ -67,20 +65,23 @@ static void enterState(AppState s) {
         case AppState::Screensaver: ui::screensaver::enter(); break;
         case AppState::MainMenu: ui::mainMenuEnter(); break;
         case AppState::GamesMenu: ui::gamesMenuEnter(); break;
-        case AppState::Tetris: games::tetris::enter(); break;
+        case AppState::EightBall: ui::eightball::enter(); break;
+        case AppState::Pokemon:   games::pokemon::enter(); break;
+        case AppState::Tetris:    games::tetris::enter(); break;
         case AppState::Snake: games::snake::enter(); break;
         case AppState::SpaceShooter: games::space_shooter::enter(); break;
         case AppState::Game2048: games::game2048::enter(); break;
-        case AppState::Peerdrop: peerdrop::enter(); break;
+        case AppState::Doom: games::doom::enter(); break;
         case AppState::Settings: settings::enter(); break;
         case AppState::ProfileSetup: settings::enter(/*startAtWifiSetup=*/true); break;
         case AppState::MusicPlayer: music::enter(); break;
         case AppState::Contacts: contacts::enter(); break;
         case AppState::Challenges: challenges::enter(); break;
         case AppState::RadioChat: radiochat::enter(); break;
-        case AppState::ShipBattle: games::ship_battle::enter(); break;
         case AppState::MissionComplete: mission_complete::enter(); break;
-        case AppState::VanguardBuddy: vanguard_buddy::enter(); break;
+        case AppState::PopCig: ui::pop_cig::enter(); break;
+        case AppState::GirlfriendMiku: girlfriend::enterMiku(); break;
+        case AppState::GirlfriendPaari: girlfriend::enterPaari(); break;
         default: break;
     }
 }
@@ -91,21 +92,24 @@ static AppState runFrame(AppState s) {
         case AppState::Screensaver: return ui::screensaver::frame();
         case AppState::MainMenu: return ui::mainMenuFrame();
         case AppState::GamesMenu: return ui::gamesMenuFrame();
-        case AppState::Tetris: return games::tetris::frame();
+        case AppState::EightBall: return ui::eightball::frame();
+        case AppState::Pokemon:   return games::pokemon::frame();
+        case AppState::Tetris:    return games::tetris::frame();
         case AppState::Snake: return games::snake::frame();
         case AppState::SpaceShooter: return games::space_shooter::frame();
         case AppState::Game2048: return games::game2048::frame();
-        case AppState::Peerdrop: return peerdrop::frame();
+        case AppState::Doom: return games::doom::frame();
         case AppState::Settings: return settings::frame();
         case AppState::ProfileSetup: return settings::frame();
         case AppState::MusicPlayer: return music::frame();
         case AppState::Contacts: return contacts::frame();
         case AppState::Challenges: return challenges::frame();
         case AppState::RadioChat: return radiochat::frame();
-        case AppState::ShipBattle: return games::ship_battle::frame();
         case AppState::MissionComplete: return mission_complete::frame();
         case AppState::Glitched: return glitch::frame();
-        case AppState::VanguardBuddy: return vanguard_buddy::frame();
+        case AppState::PopCig: return ui::pop_cig::frame();
+        case AppState::GirlfriendMiku: return girlfriend::frame();
+        case AppState::GirlfriendPaari: return girlfriend::frame();
         default: return s;
     }
 }
@@ -162,6 +166,11 @@ void setup() {
     if (Serial) Serial.println("[BOOT] rf::init()...");
     rf::init(); // confirms LoRa SPI-alive before boot animation (spec §1)
     display::setBrightness(storage::loadBrightness());
+    if (Serial) Serial.println("[BOOT] storage::initFat()...");
+    if (!storage::initFat() && Serial) {
+        Serial.println("[BOOT] WARNING: FFat mount failed (no /fat available)");
+    }
+
     if (Serial) Serial.println("[BOOT] challenges::init()...");
     challenges::init(); // starts Level 1's always-on hidden UART leak; restores LED progress from NVS
 
@@ -187,7 +196,6 @@ void loop() {
         audio::stop();
         led::stop();
         settings::stopWifiPortalIfActive();
-        peerdrop::stopIfActive();
         s_state = AppState::MissionComplete;
         enterState(s_state);
     } else if (glitch::consumeTriggerEvent()) {
@@ -197,12 +205,12 @@ void loop() {
         glitch::enter(s_state);
         s_state = AppState::Glitched;
     } else if (s_state != AppState::Settings && s_state != AppState::ProfileSetup &&
+               s_state != AppState::Pokemon &&
                input::wasPressed(input::Button::Disp)) {
         // DISP (S2): global shortcut to Display settings from anywhere. Excludes
-        // ProfileSetup too, so the shortcut doesn't fire while already in Settings.
+        // ProfileSetup, and Pokemon (which uses it to reboot).
         audio::stop();
         led::stop();
-        peerdrop::stopIfActive(); // same forced-transition BLE-leak fix as above
         s_state = AppState::Settings;
         enterState(s_state);
     } else {

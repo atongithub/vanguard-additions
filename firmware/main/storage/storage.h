@@ -4,6 +4,8 @@
 // NVS (Preferences) wrapper — spec §1, §8.7, §9 "NVS Namespaces" table.
 namespace storage {
 
+bool initFat();
+
 struct Identity {
     String name;
     String email;

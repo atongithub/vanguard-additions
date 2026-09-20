@@ -43,6 +43,9 @@ void flagBlock(const char* label, const char* flag);
 // The "> " input prompt every interactive screen uses.
 void prompt(const char* label);
 
+// Prints full ESP32 hardware specifications to the serial terminal.
+void printHardwareSpecs();
+
 // Call once per loop() tick. Detects a PuTTY/serial terminal newly
 // connecting (DTR edge) and prints a one-time welcome banner.
 void pollConnection();

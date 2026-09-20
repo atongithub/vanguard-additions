@@ -25,10 +25,10 @@ constexpr uint8_t kCriticalBatteryPercent = 5;
 
 // ---- Main menu ----
 static const char* kMainItems[] = {
-    "Challenges", "PeerDrop (BLE)", "Games", "Music Player",
-    "Settings & Diagnostics", "Contacts Manager", "Vanguard Buddy"
+    "Challenges", "Games", "Music Player", "Pop a Cig", "Magic 8 Ball",
+    "Settings & Diagnostics", "Tsundere Miku GF", "Paarivendhar GF"
 };
-static const int kMainCount = 7;
+static const int kMainCount = 8;
 
 static int s_mainSelected = 0;
 // bit0 = low-battery active, bit1 = blink phase — packed together so a phase toggle alone still
@@ -114,13 +114,15 @@ UI_ASSERT_REGION_STATE_FITS(uint8_t); // covers both s_mainRowState and s_lowBat
 static uint8_t s_mainRowState[kMainCount];
 static Region s_mainRegions[kMainCount + 1];
 static bool s_mainRegionsInit = false;
+constexpr int16_t kMainStartY = 38;
+constexpr int16_t kMainItemHeight = 22;
 
 static Region* mainMenuRegions(int* count) {
     if (!s_mainRegionsInit) {
         for (int i = 0; i < kMainCount; i++) {
             s_mainRegions[i] = Region{
-                Rect{0, (int16_t)(theme::LIST_START_Y + i * theme::LIST_ITEM_HEIGHT),
-                     (int16_t)cfg::DISPLAY_WIDTH, (int16_t)theme::LIST_ITEM_HEIGHT},
+                Rect{0, (int16_t)(kMainStartY + i * kMainItemHeight),
+                     (int16_t)cfg::DISPLAY_WIDTH, (int16_t)kMainItemHeight},
                 drawMainRow, nullptr, &s_mainRowState[i], sizeof(uint8_t), theme::COLOR_BG, {}, false};
         }
         s_mainRegions[kMainCount] = Region{
@@ -138,7 +140,7 @@ static Region* mainMenuRegions(int* count) {
 // The strip below the list rows is the one part of this screen no Region ever reaches — a
 // starfield drawn across the whole menu would visibly empty out as row redraws erase stars
 // during navigation. Only this belt animates, since nothing redraws over it.
-constexpr int16_t kMenuBeltY = (int16_t)(theme::LIST_START_Y + kMainCount * theme::LIST_ITEM_HEIGHT) + 4;
+constexpr int16_t kMenuBeltY = (int16_t)(kMainStartY + kMainCount * kMainItemHeight) + 2;
 constexpr int16_t kMenuBeltH = (int16_t)(cfg::DISPLAY_HEIGHT - kMenuBeltY);
 static unsigned long s_menuBeltTwinkleAtMs = 0;
 
@@ -248,20 +250,21 @@ AppState mainMenuFrame() {
         stopLowBatteryWarning(); // leaving the screen this warning is scoped to
         switch (s_mainSelected) {
             case 0: return AppState::Challenges;
-            case 1: return AppState::Peerdrop;
-            case 2: return AppState::GamesMenu;
-            case 3: return AppState::MusicPlayer;
-            case 4: return AppState::Settings;
-            case 5: return AppState::Contacts;
-            case 6: return AppState::VanguardBuddy;
+            case 1: return AppState::GamesMenu;
+            case 2: return AppState::MusicPlayer;
+            case 3: return AppState::PopCig;
+            case 4: return AppState::EightBall;
+            case 5: return AppState::Settings;
+            case 6: return AppState::GirlfriendMiku;
+            case 7: return AppState::GirlfriendPaari;
         }
     }
     return AppState::MainMenu;
 }
 
 // ---- Games submenu ("Game Session") ----
-static const char* kGamesItems[] = { "Tetris", "Snake", "Space Shooter", "2048", "Ship Battle" };
-static const int kGamesCount = 5;
+static const char* kGamesItems[] = { "Tetris", "Snake", "Space Shooter", "2048", "Doom", "Pokemon" };
+static const int kGamesCount = 6;
 static int s_gamesSelected = 0;
 
 static void drawGamesRow(Adafruit_ST7789& tft, Rect bounds, const void* state) {
@@ -324,7 +327,8 @@ AppState gamesMenuFrame() {
             case 1: return AppState::Snake;
             case 2: return AppState::SpaceShooter;
             case 3: return AppState::Game2048;
-            case 4: return AppState::ShipBattle;
+            case 4: return AppState::Doom;
+            case 5: return AppState::Pokemon;
         }
     }
     return AppState::GamesMenu;

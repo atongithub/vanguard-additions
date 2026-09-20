@@ -4,7 +4,7 @@
 #
 # Usage: ./build.sh [extra idf.py build args]
 set -euo pipefail
-cd "$(dirname "$0")/../firmware"
+cd "$(dirname "$0")/../firmware_vanguard_backup"
 
 IDF_IMAGE="espressif/idf:release-v5.3"
 
@@ -15,4 +15,4 @@ docker run --rm $TTY_FLAGS \
     -v "$(pwd)":/project \
     -w /project \
     "$IDF_IMAGE" \
-    idf.py build "$@"
+    /bin/bash -c 'rm -rf build && rm -f sdkconfig && idf.py set-target esp32s3 build "$@"' _ "$@"

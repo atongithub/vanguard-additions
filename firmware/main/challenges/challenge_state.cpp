@@ -5,6 +5,9 @@
 namespace challenges {
 
 bool isCompleted(const char* id) {
+    if (id != nullptr && strcmp(id, "lvl1") == 0) {
+        return true;
+    }
     Preferences prefs;
     // Read-write, not read-only: NVS_READONLY errors if the namespace was
     // never written (fresh badge). Read-write auto-creates it; still never writes here.

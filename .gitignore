@@ -1,0 +1,40 @@
+# ESP-IDF & firmware build outputs
+build/
+**/build/
+firmware/build/
+*.bin
+*.elf
+*.map
+
+# ESP-IDF runtime configurations
+sdkconfig
+sdkconfig.old
+sdkconfig.bak
+firmware/sdkconfig
+firmware/sdkconfig.bak
+firmware/sdkconfig.old
+dependencies.lock
+managed_components/
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Node / Next.js web application
+website/.next/
+website/out/
+node_modules/
+npm-debug.log*
+
+# OS & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

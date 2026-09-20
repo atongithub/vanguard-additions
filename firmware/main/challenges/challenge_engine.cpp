@@ -9,6 +9,7 @@
 namespace challenges {
 
 void init() {
+    setCompleted("lvl1", true);
     uartleak::init(); // Level 1's always-on hidden UART leak
     led::setChallengeProgress(completedCount()); // restore LED progress from NVS on boot
 }

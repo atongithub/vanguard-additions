@@ -1,8 +1,14 @@
 #include "storage.h"
 #include "../../include/config.h"
 #include <Preferences.h>
+#include <FFat.h>
 
 namespace storage {
+
+bool initFat() {
+    // Mount the ffat partition without formatting on failure
+    return FFat.begin(false, "/fat");
+}
 
 // Opened read-write, not read-only: NVS_READONLY fails with NOT_FOUND on a namespace
 // that's never been written (e.g. fresh badge), while read-write auto-creates it.

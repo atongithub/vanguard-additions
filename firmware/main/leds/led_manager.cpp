@@ -2,6 +2,7 @@
 #include "led_chain.h"
 #include <Arduino.h>
 #include <math.h>
+#include <esp_random.h>
 
 namespace led {
 
@@ -12,10 +13,9 @@ static unsigned long s_lastStepMs = 0;
 static int s_stepIndex = 0;
 static bool s_blinkOn = false;
 
-// Center-out pair order for the boot sweep.
-static const int kSweepOrder[7][2] = {
+// Center-out pair order for the boot sweep. (Top 2 white LEDs only)
+static const int kSweepOrder[5][2] = {
     { 4, 5 }, { 3, 6 }, { 2, 7 }, { 1, 8 },
-    { 9, 11 }, { 10, 12 },
     { 13, 14 },
 };
 
@@ -81,6 +81,11 @@ void init() {
 }
 
 void playEffect(EffectId id, EffectParams params) {
+    if (id == EffectId::Off) {
+        id = EffectId::Sweep;
+        params = EffectParams{0, 0, 80, (uint16_t)(kMaskRed | kMaskGreen)};
+    }
+
     // SuccessFlash/FailurePulse are presets of ChallengeComplete's flash mechanism;
     // resolve defaults here so stepChallengeComplete() only reads s_params.
     if (id == EffectId::SuccessFlash) {
@@ -101,10 +106,6 @@ void playEffect(EffectId id, EffectParams params) {
     s_blinkOn = false;
 
     switch (id) {
-        case EffectId::Off:
-            writeBaseline(); // resting state is the challenge-progress pattern, not always-dark
-            leds::setBuiltin(false);
-            break;
         case EffectId::BootSweep:
             leds::clearAll();
             break;
@@ -126,15 +127,14 @@ void stop() {
 }
 
 static void stepBootSweep() {
-    const uint16_t period = s_params.periodMs ? s_params.periodMs : 70;
+    const uint16_t period = s_params.periodMs ? s_params.periodMs : 50;
     unsigned long now = millis();
     if (now - s_lastStepMs < period) return;
     s_lastStepMs = now;
 
-    if (s_stepIndex >= 7) return; // sweep complete, hold current state
-    leds::setChainLed(kSweepOrder[s_stepIndex][0], true);
-    leds::setChainLed(kSweepOrder[s_stepIndex][1], true);
-    s_stepIndex++;
+    // Flash a random combination of the 14 LEDs
+    uint16_t randomMask = esp_random() & 0x7FFE; // Bits 1-14 are the chain LEDs
+    leds::writeChainRaw(randomMask);
 }
 
 // Shared by ChallengeComplete/SuccessFlash/FailurePulse: N flashes, then self-returns to Off.
@@ -148,8 +148,7 @@ static void stepChallengeComplete() {
     uint16_t mask = s_params.mask ? s_params.mask : kMaskAll;
     int totalSteps = flashes * 2;
     if (s_stepIndex >= totalSteps) {
-        writeBaseline(); // settle back to the challenge-progress resting state, not always-dark
-        s_effect = EffectId::Off;
+        playEffect(EffectId::Off);
         return;
     }
     bool on = (s_stepIndex % 2) == 0;

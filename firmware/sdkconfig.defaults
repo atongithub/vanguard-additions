@@ -5,6 +5,7 @@ CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
 
+
 # Custom partition table matching Vanguard_firmware's (PlatformIO)
 # app3M_fat9M_16MB.csv exactly -- see partitions.csv. The default single
 # 1MB "factory" partition ESP-IDF uses otherwise is too small (this
@@ -70,3 +71,6 @@ CONFIG_COMPILER_OPTIMIZATION_SIZE=y
 # reset it. Now panics (and reboots, per CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT
 # below, already the default) instead of hanging silently.
 CONFIG_ESP_TASK_WDT_PANIC=y
+
+# Enable Long File Name (LFN) support for fatfsgen.py so it doesn't crash on filenames it incorrectly parses as exceeding 8.3
+CONFIG_FATFS_LFN_HEAP=y

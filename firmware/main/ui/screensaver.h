@@ -8,5 +8,6 @@ namespace ui::screensaver {
 
 void enter();
 AppState frame();
+void activateSpeedBoost();
 
 } // namespace ui::screensaver
